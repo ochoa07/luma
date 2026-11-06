@@ -7,6 +7,8 @@ const port = process.env.PORT || 3000;
 app.set('view engine', 'ejs');
 app.set('views', fileURLToPath(new URL('./views/', import.meta.url)));
 
+app.use(express.static(fileURLToPath(new URL('./public/', import.meta.url))));
+
 app.get('/', (req, res) => {
     res.render('home');
 });
