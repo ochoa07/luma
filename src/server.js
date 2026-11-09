@@ -24,7 +24,6 @@ if (isProduction) {
 
 app.use(express.static(fileURLToPath(new URL('./public/', import.meta.url))));
 app.use(express.urlencoded({ extended: false }));
-
 app.use(session({
     store: new PgSessionStore({
         pool,
@@ -71,7 +70,6 @@ app.post('/signup', async (req, res, next) => {
 
     try {
         const passwordHash = await bcrypt.hash(password, 12);
-
         const result = await pool.query(
             `INSERT INTO users (first_name, email, password_hash)
              VALUES ($1, $2, $3)
@@ -100,7 +98,6 @@ app.post('/signin', async (req, res, next) => {
     const email = typeof req.body?.email === 'string'
         ? req.body.email.trim().toLowerCase()
         : '';
-
     const password = typeof req.body?.password === 'string'
         ? req.body.password
         : '';
@@ -122,7 +119,6 @@ app.post('/signin', async (req, res, next) => {
              WHERE email = $1`,
             [email]
         );
-
         const user = result.rows[0];
 
         if (!user || !(await bcrypt.compare(password, user.password_hash))) {
@@ -139,7 +135,6 @@ app.post('/signin', async (req, res, next) => {
 
             req.session.save((error) => {
                 if (error) return next(error);
-
                 return res.redirect(303, '/');
             });
         });
@@ -198,7 +193,6 @@ app.post('/check-in', requireSignIn, (req, res, next) => {
 
     req.session.save((error) => {
         if (error) return next(error);
-
         return res.redirect(303, '/check-in/comfort');
     });
 });
@@ -391,18 +385,194 @@ app.get('/saved', requireSignIn, async (req, res, next) => {
 app.post('/resources/:id/unsave', requireSignIn, async (req, res, next) => {
     const id = Number(req.params.id);
 
-    if (!/^[1-9]\d*$/.test(req.params.id) || id > 2147483647) {
+    if (!/^[1-9][0-9]*$/.test(req.params.id) || id > 2147483647) {
         return res.status(404).send('Message not found.');
     }
 
     try {
         await pool.query(
-            `DELETE FROM saved_resources
-             WHERE user_id = $1 AND resource_id = $2`,
+            'DELETE FROM saved_resources WHERE user_id = $1 AND resource_id = $2',
             [req.session.userId, id]
         );
 
         return res.redirect(303, '/saved');
+    } catch (error) {
+        return next(error);
+    }
+});
+
+app.get('/suggestions', requireSignIn, async (req, res, next) => {
+    try {
+        const result = await pool.query(
+            `SELECT s.title, s.status,
+                COALESCE(
+                    (
+                        SELECT json_agg(
+                            json_build_object(
+                                'status', h.status,
+                                'feedback', h.feedback,
+                                'createdAt', h.created_at
+                            )
+                            ORDER BY h.created_at, h.id
+                        )
+                        FROM suggestion_status_history AS h
+                        WHERE h.suggestion_id = s.id
+                    ),
+                    '[]'::json
+                ) AS history
+             FROM resource_suggestions AS s
+             WHERE s.user_id = $1
+             ORDER BY s.created_at DESC, s.id DESC`,
+            [req.session.userId]
+        );
+
+        return res.render('suggestions', {
+            suggestions: result.rows,
+            topics: comfortTopics,
+            types: resourceTypes.filter((type) => type !== 'Anything'),
+            invalid: req.query.invalid === '1',
+        });
+    } catch (error) {
+        return next(error);
+    }
+});
+
+app.post('/suggestions', requireSignIn, async (req, res, next) => {
+    const { title, message, topic, resourceType } = req.body ?? {};
+    const cleanTitle = typeof title === 'string' ? title.trim() : '';
+    const cleanMessage = typeof message === 'string' ? message.trim() : '';
+
+    if (
+        !cleanTitle || cleanTitle.length > 150 ||
+        !cleanMessage || cleanMessage.length > 1000 ||
+        !comfortTopics.includes(topic) ||
+        !resourceTypes.includes(resourceType) || resourceType === 'Anything'
+    ) {
+        return res.redirect(303, '/suggestions?invalid=1');
+    }
+
+    try {
+        await pool.query(
+            `WITH new_suggestion AS (
+                INSERT INTO resource_suggestions
+                    (user_id, title, message, topic, resource_type)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING id, user_id, status
+             )
+             INSERT INTO suggestion_status_history
+                 (suggestion_id, changed_by, status)
+             SELECT id, user_id, status FROM new_suggestion`,
+            [req.session.userId, cleanTitle, cleanMessage, topic, resourceType]
+        );
+
+        return res.redirect(303, '/suggestions');
+    } catch (error) {
+        return next(error);
+    }
+});
+
+async function requireReviewer(req, res, next) {
+    try {
+        const result = await pool.query(
+            'SELECT role FROM users WHERE id = $1',
+            [req.session.userId]
+        );
+        const role = result.rows[0]?.role;
+
+        if (role !== 'contributor' && role !== 'admin') {
+            return res.status(403).send('You don’t have access to the review queue.');
+        }
+
+        return next();
+    } catch (error) {
+        return next(error);
+    }
+}
+
+app.get('/review/suggestions', requireSignIn, requireReviewer, async (req, res, next) => {
+    try {
+        const result = await pool.query(
+            `SELECT id, title, message, topic, resource_type, status
+             FROM resource_suggestions
+             WHERE status IN ('submitted', 'under_review')
+             ORDER BY created_at, id`
+        );
+
+        return res.render('review-suggestions', { suggestions: result.rows });
+    } catch (error) {
+        return next(error);
+    }
+});
+
+app.post('/review/suggestions/:id/start', requireSignIn, requireReviewer, async (req, res, next) => {
+    const id = Number(req.params.id);
+
+    if (!/^[1-9]\d*$/.test(req.params.id) || id > 2147483647) {
+        return res.status(404).send('Suggestion not found.');
+    }
+
+    try {
+        const result = await pool.query(
+            `WITH updated_suggestion AS (
+                UPDATE resource_suggestions
+                SET status = 'under_review'
+                WHERE id = $1 AND status = 'submitted'
+                RETURNING id, status
+             )
+             INSERT INTO suggestion_status_history
+                 (suggestion_id, changed_by, status)
+             SELECT id, $2, status FROM updated_suggestion`,
+            [id, req.session.userId]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(409).send('This suggestion is no longer available to start reviewing.');
+        }
+
+        return res.redirect(303, '/review/suggestions');
+    } catch (error) {
+        return next(error);
+    }
+});
+
+app.post('/review/suggestions/:id/decision', requireSignIn, requireReviewer, async (req, res, next) => {
+    const id = Number(req.params.id);
+    const { decision, feedback } = req.body ?? {};
+    const note = typeof feedback === 'string' ? feedback.trim() : '';
+
+    if (!/^[1-9]\d*$/.test(req.params.id) || id > 2147483647) {
+        return res.status(404).send('Suggestion not found.');
+    }
+
+    if (decision !== 'approved' && decision !== 'needs_changes') {
+        return res.status(400).send('Choose a review decision.');
+    }
+
+    if (note.length > 500 || (decision === 'needs_changes' && !note)) {
+        return res.status(400).send(
+            'Keep feedback to 500 characters or fewer. Add a note if you’re asking for changes.'
+        );
+    }
+
+    try {
+        const result = await pool.query(
+            `WITH updated_suggestion AS (
+                UPDATE resource_suggestions
+                SET status = $2
+                WHERE id = $1 AND status = 'under_review'
+                RETURNING id, status
+             )
+             INSERT INTO suggestion_status_history
+                 (suggestion_id, changed_by, status, feedback)
+             SELECT id, $3, status, $4 FROM updated_suggestion`,
+            [id, decision, req.session.userId, note || null]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(409).send('This suggestion is no longer under review.');
+        }
+
+        return res.redirect(303, '/review/suggestions');
     } catch (error) {
         return next(error);
     }

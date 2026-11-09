@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suggest a resource | Luma</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <main class="welcome-screen">
+        <a class="wordmark" href="/">Luma</a>
+
+        <section class="signup" aria-labelledby="suggestion-title">
+            <h1 id="suggestion-title">Suggest a resource</h1>
+            <p>Share a message that helped you.</p>
+
+            <% if (invalid) { %>
+                <p role="alert">Check that all fields are filled in and within the limits.</p>
+            <% } %>
+
+            <form class="signup-form check-in-form" action="/suggestions" method="post">
+                <label for="title">Title</label>
+                <input id="title" name="title" maxlength="150" required>
+
+                <label for="message">Message</label>
+                <textarea id="message" name="message" rows="4"
+                    maxlength="1000" required></textarea>
+
+                <label for="topic">Topic</label>
+                <select id="topic" name="topic" required>
+                    <option value="">Choose a topic</option>
+                    <% topics.forEach((topic) => { %>
+                        <option value="<%= topic %>"><%= topic %></option>
+                    <% }); %>
+                </select>
+
+                <label for="resource-type">Message type</label>
+                <select id="resource-type" name="resourceType" required>
+                    <option value="">Choose a type</option>
+                    <% types.forEach((type) => { %>
+                        <option value="<%= type %>"><%= type %></option>
+                    <% }); %>
+                </select>
+
+                <button type="submit">Send suggestion</button>
+            </form>
+
+            <h2>My suggestions</h2>
+
+            <% if (suggestions.length === 0) { %>
+                <p>Your suggestions will show up here.</p>
+            <% } else { %>
+                <ul class="journal-entries" role="list">
+                    <% suggestions.forEach((suggestion) => { %>
+                        <li class="journal-entry">
+                            <p class="journal-entry-text"><%= suggestion.title %></p>
+                            <small style="text-transform: capitalize"><%= suggestion.status.replaceAll('_', ' ') %></small>
+                            <details class="journal-action">
+                                <summary>View history</summary>
+
+                                <% if (suggestion.history.length === 0) { %>
+                                    <p>No history yet.</p>
+                                <% } else { %>
+                                    <ol>
+                                        <% suggestion.history.forEach((event) => { %>
+                                            <li>
+                                                <strong><%= event.status.replaceAll('_', ' ') %></strong>
+                                                <span>· <%= new Date(event.createdAt).toLocaleDateString('en-US', {
+                                                    timeZone: 'America/Denver'
+                                                }) %></span>
+
+                                                <% if (event.feedback) { %>
+                                                    <p><%= event.feedback %></p>
+                                                <% } %>
+                                            </li>
+                                        <% }); %>
+                                    </ol>
+                                <% } %>
+                            </details>
+                        </li>
+                    <% }); %>
+                </ul>
+            <% } %>
+        </section>
+    </main>
+</body>
+</html>

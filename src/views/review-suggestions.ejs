@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review suggestions | Luma</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <main class="welcome-screen">
+        <a class="wordmark" href="/">Luma</a>
+
+        <section class="signup" aria-labelledby="review-title">
+            <h1 id="review-title">Review suggestions</h1>
+
+            <% if (suggestions.length === 0) { %>
+                <p>No suggestions are waiting for review.</p>
+            <% } else { %>
+                <ul class="journal-entries" role="list">
+                    <% suggestions.forEach((suggestion) => { %>
+                        <li class="journal-entry">
+                            <h2><%= suggestion.title %></h2>
+                            <p class="journal-entry-text"><%= suggestion.message %></p>
+                            <p><%= suggestion.resource_type %> · <%= suggestion.topic %></p>
+                            <p><%= suggestion.status === 'submitted' ? 'Submitted' : 'Under review' %></p>
+
+                            <% if (suggestion.status === 'submitted') { %>
+                                <form class="signup-form"
+                                    action="/review/suggestions/<%= suggestion.id %>/start"
+                                    method="post">
+                                    <button type="submit">Start review</button>
+                                </form>
+                            <% } %>
+                            <% if (suggestion.status === 'under_review') { %>
+                            <form class="signup-form check-in-form"
+                                action="/review/suggestions/<%= suggestion.id %>/decision"
+                                method="post">
+                                <label for="feedback-<%= suggestion.id %>">Feedback for the member</label>
+                                <textarea id="feedback-<%= suggestion.id %>" name="feedback"
+                                    rows="3" maxlength="500"></textarea>
+
+                                <button type="submit" name="decision" value="approved">Approve</button>
+                                <button type="submit" name="decision" value="needs_changes">
+                                    Request changes
+                                </button>
+                            </form>
+                        <% } %>
+                        </li>
+                    <% }); %>
+                </ul>
+            <% } %>
+        </section>
+    </main>
+</body>
+</html>
