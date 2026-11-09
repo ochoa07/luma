@@ -92,3 +92,54 @@ body {
         animation: none;
     }
 }
+
+a.wordmark {
+    color: inherit;
+    text-decoration: none;
+}
+
+.signup {
+    width: min(100%, 24rem);
+}
+
+.signup h1,
+.signup p {
+    text-align: center;
+}
+
+.signup h1 {
+    margin: 0;
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
+}
+
+.signup p {
+    color: #c4bedb;
+}
+
+.signup-form {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 1.75rem;
+}
+
+.signup-form input,
+.signup-form button {
+    padding: 0.85rem 1rem;
+    border: 1px solid #625a85;
+    border-radius: 0.75rem;
+    font: inherit;
+}
+
+.signup-form input {
+    margin-bottom: 0.65rem;
+    color: inherit;
+    background: #181e3a;
+}
+
+.signup-form button {
+    margin-top: 0.5rem;
+    color: #10152f;
+    background: linear-gradient(100deg, #8ec5ff, #d3adff, #f0a5e8);
+    font-weight: 650;
+    cursor: pointer;
+}

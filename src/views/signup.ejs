@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create an account | Luma</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <main class="welcome-screen">
+        <a class="wordmark" href="/">Luma</a>
+
+        <section class="signup" aria-labelledby="signup-title">
+            <div class="glow-pair" aria-hidden="true">
+                <span class="glow glow-blue"></span>
+                <span class="glow glow-pink"></span>
+            </div>
+
+            <h1 id="signup-title">Create your account.</h1>
+            <p>Let’s start with your first name.</p>
+
+            <% if (error) { %>
+                <p role="alert"><%= error %></p>
+            <% } %>
+
+            <% if (accountCreated) { %>
+                <p role="status">Your account was created.</p>
+            <% } %>
+
+            <form class="signup-form" action="/signup" method="post">
+                <label for="first-name">First name</label>
+                <input id="first-name" name="firstName" autocomplete="given-name"
+                    maxlength="80" required>
+
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" autocomplete="email"
+                    maxlength="254" required>
+
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password"
+                    autocomplete="new-password" required>
+
+                <button type="submit">Create account</button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>
