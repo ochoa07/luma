@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in | Luma</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <main class="welcome-screen">
+        <a class="wordmark" href="/">Luma</a>
+
+        <section class="signup" aria-labelledby="signin-title">
+            <div class="glow-pair" aria-hidden="true">
+                <span class="glow glow-blue"></span>
+                <span class="glow glow-pink"></span>
+            </div>
+
+            <h1 id="signin-title">Hey, welcome back.</h1>
+
+            <% if (error) { %>
+                <p role="alert"><%= error %></p>
+            <% } %>
+
+            <form class="signup-form" action="/signin" method="post">
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email"
+                    autocomplete="username" required>
+
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password"
+                    autocomplete="current-password" required>
+
+                <button type="submit">Sign in</button>
+            </form>
+
+            <p>New here? <a href="/signup">Create an account</a></p>
+        </section>
+    </main>
+</body>
+</html>

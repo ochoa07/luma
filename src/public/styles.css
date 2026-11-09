@@ -143,3 +143,48 @@ a.wordmark {
     font-weight: 650;
     cursor: pointer;
 }
+
+.welcome-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1.75rem;
+}
+
+.welcome-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.65rem 1.25rem;
+    border: 1px solid transparent;
+    border-radius: 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.welcome-link--primary {
+    color: #10152f;
+    background: linear-gradient(100deg, #8ec5ff, #d3adff, #f0a5e8);
+}
+
+.welcome-link--primary:hover {
+    box-shadow: 0 0 18px #d3adff55;
+}
+
+.welcome-link--secondary {
+    color: #f6f4ff;
+    background: #181e3a;
+    border-color: #77719b;
+}
+
+.welcome-link--secondary:hover {
+    background: #252b50;
+}
+
+.welcome-link:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 4px;
+}
