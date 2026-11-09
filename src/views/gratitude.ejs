@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gratitude | Luma</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <main class="welcome-screen">
+        <a class="wordmark" href="/">Luma</a>
+
+        <section class="signup" aria-labelledby="gratitude-title">
+            <div class="glow-pair" aria-hidden="true">
+                <span class="glow glow-blue"></span>
+                <span class="glow glow-pink"></span>
+            </div>
+
+            <h1 id="gratitude-title">What’s one thing you’re grateful for?</h1>
+            <p>It can be something small.</p>
+
+            <% if (error) { %>
+                <p role="alert"><%= error %></p>
+            <% } %>
+
+            <form class="signup-form check-in-form" action="/gratitude" method="post">
+                <label for="entry">Your entry</label>
+                <textarea id="entry" name="entry" rows="4"
+                    maxlength="500" required></textarea>
+                <button type="submit">Save entry</button>
+            </form>
+
+            <h2>Past entries</h2>
+
+            <% if (entries.length === 0) { %>
+                <p>Your entries will show up here.</p>
+            <% } else { %>
+                <ul class="journal-entries" role="list">
+                    <% entries.forEach((entry) => { %>
+                        <li class="journal-entry">
+                            <p class="journal-entry-text"><%= entry.entry_text %></p>
+
+                            <details class="journal-action">
+                                <summary>Edit</summary>
+
+                                <form class="signup-form check-in-form"
+                                    action="/gratitude/<%= entry.id %>/edit" method="post">
+                                    <label for="entry-<%= entry.id %>">Edit your entry</label>
+                                    <textarea id="entry-<%= entry.id %>" name="entry" rows="3"
+                                        maxlength="500" required><%= entry.entry_text %></textarea>
+                                    <button type="submit">Save changes</button>
+                                </form>
+                            </details>
+
+                            <details class="journal-action journal-action--delete">
+                                <summary>Delete</summary>
+
+                                <form class="journal-delete-form"
+                                    action="/gratitude/<%= entry.id %>/delete" method="post">
+                                    <p>Delete this entry?</p>
+                                    <button type="submit">Yes, delete entry</button>
+                                </form>
+                            </details>
+                        </li>
+                    <% }); %>
+                </ul>
+            <% } %>
+        </section>
+    </main>
+</body>
+</html>

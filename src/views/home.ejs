@@ -20,12 +20,23 @@
             <p>Good to see you.</p>
 
             <% if (firstName) { %>
+                <div class="welcome-actions">
+                    <a class="welcome-link welcome-link--primary" href="/check-in">
+                        Check in
+                    </a>
+                    <a class="welcome-link welcome-link--secondary" href="/gratitude">
+                        Gratitude journal
+                    </a>
+                </div>
+
                 <form class="signup-form" action="/signout" method="post">
                     <button type="submit">Sign out</button>
                 </form>
             <% } else { %>
                 <div class="welcome-actions">
-                    <a class="welcome-link welcome-link--primary" href="/signin">Sign in</a>
+                    <a class="welcome-link welcome-link--primary" href="/signin">
+                        Sign in
+                    </a>
                     <a class="welcome-link welcome-link--secondary" href="/signup">
                         Create an account
                     </a>

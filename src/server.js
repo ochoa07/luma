@@ -157,6 +157,197 @@ app.post('/signout', (req, res, next) => {
     });
 });
 
+function requireSignIn(req, res, next) {
+    if (!req.session.userId) {
+        return res.redirect('/signin');
+    }
+
+    return next();
+}
+
+const feelings = ['Stressed', 'Sad', 'Lonely', 'Hopeful', 'Grateful', 'Not sure'];
+
+app.get('/check-in', requireSignIn, (req, res) => {
+    res.render('check-in', { feelings, error: null });
+});
+
+app.post('/check-in', requireSignIn, (req, res, next) => {
+    if (req.body?.action === 'skip') {
+        delete req.session.checkInDraft;
+    } else {
+        const reflection = req.body?.reflection;
+        const submitted = req.body?.feelings ?? [];
+        const selected = Array.isArray(submitted) ? submitted : [submitted];
+
+        if (
+            typeof reflection !== 'string' ||
+            reflection.length > 500 ||
+            selected.some((feeling) => !feelings.includes(feeling))
+        ) {
+            return res.status(400).render('check-in', {
+                feelings,
+                error: 'Keep your note under 500 characters and choose from the feelings shown.',
+            });
+        }
+
+        req.session.checkInDraft = {
+            reflection: reflection.trim(),
+            feelings: [...new Set(selected)],
+        };
+    }
+
+    req.session.save((error) => {
+        if (error) return next(error);
+
+        return res.redirect(303, '/check-in/comfort');
+    });
+});
+
+const comfortTopics = [
+    'Peace', 'Hope', 'Strength', 'Feeling loved', 'Direction',
+    'Just something encouraging',
+];
+
+const resourceTypes = ['Anything', 'Scripture', 'Quote', 'Conference talk'];
+
+app.get('/check-in/comfort', requireSignIn, (req, res) => {
+    res.render('check-in-comfort', { resource: null, error: null });
+});
+
+app.post('/check-in/comfort', requireSignIn, async (req, res, next) => {
+    const { topic, resourceType } = req.body ?? {};
+
+    if (!comfortTopics.includes(topic) || !resourceTypes.includes(resourceType)) {
+        return res.status(400).render('check-in-comfort', {
+            resource: null,
+            error: 'Choose what would help and what kind of message you’d like.',
+        });
+    }
+
+    try {
+        const result = await pool.query(
+            `SELECT title, message, resource_type, topic
+             FROM resources
+             WHERE is_published = true
+               AND (topic = $1 OR topic = 'Just something encouraging')
+             ORDER BY
+                CASE
+                    WHEN topic = $1 AND ($2 = 'Anything' OR resource_type = $2) THEN 0
+                    WHEN topic = $1 THEN 1
+                    ELSE 2
+                END,
+                id
+             LIMIT 1`,
+            [topic, resourceType]
+        );
+
+        return res.render('check-in-comfort', {
+            resource: result.rows[0] ?? null,
+            error: result.rows.length ? null : 'There’s no message available yet.',
+        });
+    } catch (error) {
+        return next(error);
+    }
+});
+
+app.get('/gratitude', requireSignIn, async (req, res, next) => {
+    try {
+        const result = await pool.query(
+            `SELECT id, entry_text, created_at
+             FROM gratitude_entries
+             WHERE user_id = $1
+             ORDER BY created_at DESC, id DESC`,
+            [req.session.userId]
+        );
+
+        const error = req.query.invalid === '1'
+            ? 'Write between 1 and 500 characters before saving.'
+            : null;
+
+        return res.render('gratitude', { entries: result.rows, error });
+    } catch (error) {
+        return next(error);
+    }
+});
+
+app.post('/gratitude', requireSignIn, async (req, res, next) => {
+    const entry = typeof req.body?.entry === 'string'
+        ? req.body.entry.trim()
+        : '';
+
+    if (!entry || entry.length > 500) {
+        return res.redirect(303, '/gratitude?invalid=1');
+    }
+
+    try {
+        await pool.query(
+            `INSERT INTO gratitude_entries (user_id, entry_text)
+             VALUES ($1, $2)`,
+            [req.session.userId, entry]
+        );
+
+        return res.redirect(303, '/gratitude');
+    } catch (error) {
+        return next(error);
+    }
+});
+
+app.post('/gratitude/:id/edit', requireSignIn, async (req, res, next) => {
+    const id = Number(req.params.id);
+    const entry = typeof req.body?.entry === 'string'
+        ? req.body.entry.trim()
+        : '';
+
+    if (!/^[1-9]\d*$/.test(req.params.id) || id > 2147483647) {
+        return res.status(404).send('Entry not found.');
+    }
+
+    if (!entry || entry.length > 500) {
+        return res.redirect(303, '/gratitude?invalid=1');
+    }
+
+    try {
+        const result = await pool.query(
+            `UPDATE gratitude_entries
+             SET entry_text = $1
+             WHERE id = $2 AND user_id = $3`,
+            [entry, id, req.session.userId]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).send('Entry not found.');
+        }
+
+        return res.redirect(303, '/gratitude');
+    } catch (error) {
+        return next(error);
+    }
+});
+
+app.post('/gratitude/:id/delete', requireSignIn, async (req, res, next) => {
+    const id = Number(req.params.id);
+
+    if (!/^[1-9]\d*$/.test(req.params.id) || id > 2147483647) {
+        return res.status(404).send('Entry not found.');
+    }
+
+    try {
+        const result = await pool.query(
+            `DELETE FROM gratitude_entries
+             WHERE id = $1 AND user_id = $2`,
+            [id, req.session.userId]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).send('Entry not found.');
+        }
+
+        return res.redirect(303, '/gratitude');
+    } catch (error) {
+        return next(error);
+    }
+});
+
 app.listen(port, '0.0.0.0', () => {
     console.log(`Luma is running on port ${port}`);
 });

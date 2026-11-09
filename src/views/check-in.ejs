@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check in | Luma</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <main class="welcome-screen">
+        <a class="wordmark" href="/">Luma</a>
+
+        <section class="signup" aria-labelledby="check-in-title">
+            <div class="glow-pair" aria-hidden="true">
+                <span class="glow glow-blue"></span>
+                <span class="glow glow-pink"></span>
+            </div>
+
+            <h1 id="check-in-title">How are you feeling today?</h1>
+            <p>You can write a little, or choose a feeling below.</p>
+
+            <% if (error) { %>
+                <p role="alert"><%= error %></p>
+            <% } %>
+
+            <form class="signup-form check-in-form" action="/check-in" method="post">
+                <label for="reflection">What’s on your mind?</label>
+                <textarea
+                    id="reflection"
+                    name="reflection"
+                    rows="4"
+                    maxlength="500"
+                    placeholder="Write a little about how you’re feeling…"
+                ></textarea>
+
+                <fieldset class="feeling-group">
+                    <legend>You can pick more than one.</legend>
+
+                    <div class="feeling-grid">
+                        <% feelings.forEach((feeling) => { %>
+                            <label class="feeling-option">
+                                <input type="checkbox" name="feelings" value="<%= feeling %>">
+                                <span><%= feeling %></span>
+                            </label>
+                        <% }); %>
+                    </div>
+                </fieldset>
+
+                <button type="submit" name="action" value="continue">Continue</button>
+                <button class="check-in-skip" type="submit" name="action" value="skip" formnovalidate>
+                    Skip for now
+                </button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

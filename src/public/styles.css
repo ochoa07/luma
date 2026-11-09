@@ -188,3 +188,185 @@ a.wordmark {
     outline: 2px solid #fff;
     outline-offset: 4px;
 }
+
+.check-in-form textarea {
+    width: 100%;
+    min-height: 7rem;
+    padding: 0.85rem 1rem;
+    resize: vertical;
+    border: 1px solid #625a85;
+    border-radius: 0.75rem;
+    background: #181e3a;
+    color: inherit;
+    font: inherit;
+}
+
+.check-in-form textarea::placeholder {
+    color: #aaa5c4;
+}
+
+.feeling-group {
+    min-inline-size: 0;
+    margin: 0.75rem 0;
+    padding: 0;
+    border: 0;
+}
+
+.feeling-group legend {
+    margin-bottom: 0.65rem;
+    padding: 0;
+    color: #c4bedb;
+    font-size: 0.9rem;
+}
+
+.feeling-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5rem), 1fr));
+    gap: 0.55rem;
+}
+
+.feeling-option {
+    position: relative;
+    cursor: pointer;
+}
+
+.feeling-option input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.feeling-option span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    padding: 0.5rem;
+    border: 1px solid #625a85;
+    border-radius: 999px;
+    background: #181e3a;
+    font-size: 0.9rem;
+}
+
+.feeling-option input:checked + span {
+    border-color: #b9a7ff;
+    background: #363065;
+}
+
+.feeling-option input:checked + span::before {
+    content: "✓" / "";
+    color: #d9c7ff;
+}
+
+.feeling-option input:focus-visible + span,
+.check-in-form :is(textarea, button):focus-visible {
+    outline: 2px solid #b9a7ff;
+    outline-offset: 3px;
+}
+
+.check-in-form .check-in-skip {
+    justify-self: center;
+    min-height: 44px;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    color: #c4bedb;
+    font-size: 0.9rem;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+.comfort-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.comfort-grid .feeling-option span {
+    height: 100%;
+    text-align: center;
+}
+
+.journal-entries {
+    display: grid;
+    gap: 0.85rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.journal-entry {
+    padding: 1.15rem;
+    border: 1px solid #625a85;
+    border-radius: 1rem;
+    background: #181e3a;
+}
+
+.journal-entry .journal-entry-text {
+    margin: 0 0 0.85rem;
+    color: #f6f4ff;
+    line-height: 1.6;
+    text-align: left;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.journal-action {
+    display: inline-block;
+    margin: 0 0.4rem 0.35rem 0;
+    vertical-align: top;
+}
+
+.journal-action[open] {
+    display: block;
+    margin-right: 0;
+}
+
+.journal-action summary,
+.journal-delete-form button {
+    width: fit-content;
+    min-height: 44px;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #77719b;
+    border-radius: 0.65rem;
+    background: #252b50;
+    color: #e7dfff;
+    font: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.journal-action summary {
+    list-style: none;
+}
+
+.journal-action summary::-webkit-details-marker {
+    display: none;
+}
+
+.journal-action--delete summary,
+.journal-delete-form button {
+    border-color: #94647e;
+    background: #35243c;
+    color: #ffcbe0;
+}
+
+.journal-action summary:hover,
+.journal-delete-form button:hover {
+    filter: brightness(1.2);
+}
+
+.journal-action summary:focus-visible,
+.journal-delete-form button:focus-visible {
+    outline: 2px solid #d3adff;
+    outline-offset: 3px;
+}
+
+.journal-action form {
+    margin-top: 0.85rem;
+}
+
+.journal-delete-form p {
+    margin: 0 0 0.5rem;
+    text-align: left;
+}

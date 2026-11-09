@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find comfort | Luma</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <main class="welcome-screen">
+        <a class="wordmark" href="/">Luma</a>
+
+        <section class="signup" aria-labelledby="comfort-title">
+            <div class="glow-pair" aria-hidden="true">
+                <span class="glow glow-blue"></span>
+                <span class="glow glow-pink"></span>
+            </div>
+
+            <h1 id="comfort-title">What would help right now?</h1>
+            <p>You don’t need to have it all figured out.</p>
+
+            <% if (error) { %>
+                <p role="alert"><%= error %></p>
+            <% } %>
+
+            <form class="signup-form check-in-form" action="/check-in/comfort" method="post">
+                <fieldset class="feeling-group">
+                    <legend>What would feel helpful?</legend>
+
+                    <div class="feeling-grid comfort-grid">
+                        <% [
+                            'Peace',
+                            'Hope',
+                            'Strength',
+                            'Feeling loved',
+                            'Direction',
+                            'Just something encouraging'
+                        ].forEach((topic) => { %>
+                            <label class="feeling-option">
+                                <input
+                                    type="radio"
+                                    name="topic"
+                                    value="<%= topic %>"
+                                    required
+                                >
+                                <span><%= topic %></span>
+                            </label>
+                        <% }); %>
+                    </div>
+                </fieldset>
+
+                <fieldset class="feeling-group">
+                    <legend>What would you like?</legend>
+
+                    <div class="feeling-grid comfort-grid">
+                        <% ['Anything', 'Scripture', 'Quote', 'Conference talk']
+                            .forEach((type) => { %>
+                            <label class="feeling-option">
+                                <input
+                                    type="radio"
+                                    name="resourceType"
+                                    value="<%= type %>"
+                                    <%= type === 'Anything' ? 'checked' : '' %>
+                                >
+                                <span><%= type %></span>
+                            </label>
+                        <% }); %>
+                    </div>
+                </fieldset>
+
+                <button type="submit">Find something for me</button>
+            </form>
+
+            <% if (resource) { %>
+                <article aria-labelledby="resource-title">
+                    <p><%= resource.resource_type %> · <%= resource.topic %></p>
+                    <h2 id="resource-title"><%= resource.title %></h2>
+                    <p><%= resource.message %></p>
+                </article>
+            <% } %>
+
+            <div class="welcome-actions">
+                <a class="welcome-link welcome-link--secondary" href="/check-in">
+                    Back
+                </a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
