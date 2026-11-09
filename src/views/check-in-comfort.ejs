@@ -76,6 +76,9 @@
                     <p><%= resource.resource_type %> · <%= resource.topic %></p>
                     <h2 id="resource-title"><%= resource.title %></h2>
                     <p><%= resource.message %></p>
+                    <form class="signup-form" action="/resources/<%= resource.id %>/save" method="post">
+                        <button type="submit">Save to favorites</button>
+                    </form>
                 </article>
             <% } %>
 

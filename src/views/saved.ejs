@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved messages | Luma</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <main class="welcome-screen">
+        <a class="wordmark" href="/">Luma</a>
+
+        <section class="signup" aria-labelledby="saved-title">
+            <h1 id="saved-title">Saved messages</h1>
+            <p>Come back to the messages that helped you.</p>
+
+            <% if (resources.length === 0) { %>
+                <p>When you save a message, it’ll show up here.</p>
+            <% } else { %>
+                <ul class="journal-entries" role="list">
+                    <% resources.forEach((resource) => { %>
+                        <li class="journal-entry">
+                            <small><%= resource.resource_type %></small>
+                            <h2><%= resource.title %></h2>
+                            <p class="journal-entry-text"><%= resource.message %></p>
+                            <form action="/resources/<%= resource.id %>/unsave" method="post">
+                                <button class="welcome-link welcome-link--secondary" type="submit">
+                                    Remove from saved
+                                </button>
+                            </form>
+                        </li>
+                    <% }); %>
+                </ul>
+            <% } %>
+
+            <div class="welcome-actions">
+                <a class="welcome-link welcome-link--secondary" href="/">Back home</a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
