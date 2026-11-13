@@ -4,6 +4,8 @@ import bcrypt from 'bcrypt';
 import { pool } from './db.js';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
+import gratitudeRouter from './routes/gratitude.js';
+import { requireSignIn } from './middleware/require-sign-in.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -152,14 +154,6 @@ app.post('/signout', (req, res, next) => {
     });
 });
 
-function requireSignIn(req, res, next) {
-    if (!req.session.userId) {
-        return res.redirect('/signin');
-    }
-
-    return next();
-}
-
 const feelings = ['Stressed', 'Sad', 'Lonely', 'Hopeful', 'Grateful', 'Not sure'];
 
 app.get('/check-in', requireSignIn, (req, res) => {
@@ -244,103 +238,7 @@ app.post('/check-in/comfort', requireSignIn, async (req, res, next) => {
     }
 });
 
-app.get('/gratitude', requireSignIn, async (req, res, next) => {
-    try {
-        const result = await pool.query(
-            `SELECT id, entry_text, created_at
-             FROM gratitude_entries
-             WHERE user_id = $1
-             ORDER BY created_at DESC, id DESC`,
-            [req.session.userId]
-        );
-
-        const error = req.query.invalid === '1'
-            ? 'Write between 1 and 500 characters before saving.'
-            : null;
-
-        return res.render('gratitude', { entries: result.rows, error });
-    } catch (error) {
-        return next(error);
-    }
-});
-
-app.post('/gratitude', requireSignIn, async (req, res, next) => {
-    const entry = typeof req.body?.entry === 'string'
-        ? req.body.entry.trim()
-        : '';
-
-    if (!entry || entry.length > 500) {
-        return res.redirect(303, '/gratitude?invalid=1');
-    }
-
-    try {
-        await pool.query(
-            `INSERT INTO gratitude_entries (user_id, entry_text)
-             VALUES ($1, $2)`,
-            [req.session.userId, entry]
-        );
-
-        return res.redirect(303, '/gratitude');
-    } catch (error) {
-        return next(error);
-    }
-});
-
-app.post('/gratitude/:id/edit', requireSignIn, async (req, res, next) => {
-    const id = Number(req.params.id);
-    const entry = typeof req.body?.entry === 'string'
-        ? req.body.entry.trim()
-        : '';
-
-    if (!/^[1-9]\d*$/.test(req.params.id) || id > 2147483647) {
-        return res.status(404).send('Entry not found.');
-    }
-
-    if (!entry || entry.length > 500) {
-        return res.redirect(303, '/gratitude?invalid=1');
-    }
-
-    try {
-        const result = await pool.query(
-            `UPDATE gratitude_entries
-             SET entry_text = $1
-             WHERE id = $2 AND user_id = $3`,
-            [entry, id, req.session.userId]
-        );
-
-        if (result.rowCount === 0) {
-            return res.status(404).send('Entry not found.');
-        }
-
-        return res.redirect(303, '/gratitude');
-    } catch (error) {
-        return next(error);
-    }
-});
-
-app.post('/gratitude/:id/delete', requireSignIn, async (req, res, next) => {
-    const id = Number(req.params.id);
-
-    if (!/^[1-9]\d*$/.test(req.params.id) || id > 2147483647) {
-        return res.status(404).send('Entry not found.');
-    }
-
-    try {
-        const result = await pool.query(
-            `DELETE FROM gratitude_entries
-             WHERE id = $1 AND user_id = $2`,
-            [id, req.session.userId]
-        );
-
-        if (result.rowCount === 0) {
-            return res.status(404).send('Entry not found.');
-        }
-
-        return res.redirect(303, '/gratitude');
-    } catch (error) {
-        return next(error);
-    }
-});
+app.use('/gratitude', gratitudeRouter);
 
 app.post('/resources/:id/save', requireSignIn, async (req, res, next) => {
     const id = Number(req.params.id);
