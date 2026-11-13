@@ -8,7 +8,7 @@ import gratitudeRouter from './routes/gratitude.js';
 import createCheckInRouter from './routes/check-in.js';
 import createSuggestionsRouter from './routes/suggestions.js';
 import reviewSuggestionsRouter from './routes/review-suggestions.js';
-import { requireSignIn } from './middleware/require-sign-in.js';
+import savedResourcesRouter from './routes/saved-resources.js';
 import { errorHandler } from './middleware/error-handler.js';
 
 const app = express();
@@ -172,64 +172,7 @@ app.use('/check-in', createCheckInRouter({
 
 app.use('/gratitude', gratitudeRouter);
 
-app.post('/resources/:id/save', requireSignIn, async (req, res, next) => {
-    const id = Number(req.params.id);
-
-    if (!/^[1-9]\d*$/.test(req.params.id) || id > 2147483647) {
-        return res.status(404).send('Message not found.');
-    }
-
-    try {
-        await pool.query(
-            `INSERT INTO saved_resources (user_id, resource_id)
-             SELECT $1, id
-             FROM resources
-             WHERE id = $2 AND is_published = true
-             ON CONFLICT (user_id, resource_id) DO NOTHING`,
-            [req.session.userId, id]
-        );
-
-        return res.redirect(303, '/saved');
-    } catch (error) {
-        return next(error);
-    }
-});
-
-app.get('/saved', requireSignIn, async (req, res, next) => {
-    try {
-        const result = await pool.query(
-            `SELECT r.id, r.title, r.message, r.resource_type
-             FROM saved_resources AS s
-             JOIN resources AS r ON r.id = s.resource_id
-             WHERE s.user_id = $1 AND r.is_published = true
-             ORDER BY s.saved_at DESC, s.resource_id DESC`,
-            [req.session.userId]
-        );
-
-        return res.render('saved', { resources: result.rows });
-    } catch (error) {
-        return next(error);
-    }
-});
-
-app.post('/resources/:id/unsave', requireSignIn, async (req, res, next) => {
-    const id = Number(req.params.id);
-
-    if (!/^[1-9][0-9]*$/.test(req.params.id) || id > 2147483647) {
-        return res.status(404).send('Message not found.');
-    }
-
-    try {
-        await pool.query(
-            'DELETE FROM saved_resources WHERE user_id = $1 AND resource_id = $2',
-            [req.session.userId, id]
-        );
-
-        return res.redirect(303, '/saved');
-    } catch (error) {
-        return next(error);
-    }
-});
+app.use(savedResourcesRouter);
 
 app.use('/suggestions', createSuggestionsRouter({
     topics: comfortTopics,
