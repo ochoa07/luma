@@ -7,6 +7,11 @@ import { pool } from './db.js';
 import gratitudeRouter from './routes/gratitude.js';
 import createSuggestionsRouter from './routes/suggestions.js';
 import { requireSignIn } from './middleware/require-sign-in.js';
+import {
+    showReviewQueue,
+    startReview,
+    submitDecision,
+} from './controllers/review-suggestions.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -323,94 +328,26 @@ async function requireReviewer(req, res, next) {
     }
 }
 
-app.get('/review/suggestions', requireSignIn, requireReviewer, async (req, res, next) => {
-    try {
-        const result = await pool.query(
-            `SELECT id, title, message, topic, resource_type, status
-             FROM resource_suggestions
-             WHERE status IN ('submitted', 'under_review')
-             ORDER BY created_at, id`
-        );
+app.get(
+    '/review/suggestions',
+    requireSignIn,
+    requireReviewer,
+    showReviewQueue
+);
 
-        return res.render('review-suggestions', { suggestions: result.rows });
-    } catch (error) {
-        return next(error);
-    }
-});
+app.post(
+    '/review/suggestions/:id/start',
+    requireSignIn,
+    requireReviewer,
+    startReview
+);
 
-app.post('/review/suggestions/:id/start', requireSignIn, requireReviewer, async (req, res, next) => {
-    const id = Number(req.params.id);
-
-    if (!/^[1-9]\d*$/.test(req.params.id) || id > 2147483647) {
-        return res.status(404).send('Suggestion not found.');
-    }
-
-    try {
-        const result = await pool.query(
-            `WITH updated_suggestion AS (
-                UPDATE resource_suggestions
-                SET status = 'under_review'
-                WHERE id = $1 AND status = 'submitted'
-                RETURNING id, status
-             )
-             INSERT INTO suggestion_status_history
-                 (suggestion_id, changed_by, status)
-             SELECT id, $2, status FROM updated_suggestion`,
-            [id, req.session.userId]
-        );
-
-        if (result.rowCount === 0) {
-            return res.status(409).send('This suggestion is no longer available to start reviewing.');
-        }
-
-        return res.redirect(303, '/review/suggestions');
-    } catch (error) {
-        return next(error);
-    }
-});
-
-app.post('/review/suggestions/:id/decision', requireSignIn, requireReviewer, async (req, res, next) => {
-    const id = Number(req.params.id);
-    const { decision, feedback } = req.body ?? {};
-    const note = typeof feedback === 'string' ? feedback.trim() : '';
-
-    if (!/^[1-9]\d*$/.test(req.params.id) || id > 2147483647) {
-        return res.status(404).send('Suggestion not found.');
-    }
-
-    if (decision !== 'approved' && decision !== 'needs_changes') {
-        return res.status(400).send('Choose a review decision.');
-    }
-
-    if (note.length > 500 || (decision === 'needs_changes' && !note)) {
-        return res.status(400).send(
-            'Keep feedback to 500 characters or fewer. Add a note if you’re asking for changes.'
-        );
-    }
-
-    try {
-        const result = await pool.query(
-            `WITH updated_suggestion AS (
-                UPDATE resource_suggestions
-                SET status = $2
-                WHERE id = $1 AND status = 'under_review'
-                RETURNING id, status
-             )
-             INSERT INTO suggestion_status_history
-                 (suggestion_id, changed_by, status, feedback)
-             SELECT id, $3, status, $4 FROM updated_suggestion`,
-            [id, decision, req.session.userId, note || null]
-        );
-
-        if (result.rowCount === 0) {
-            return res.status(409).send('This suggestion is no longer under review.');
-        }
-
-        return res.redirect(303, '/review/suggestions');
-    } catch (error) {
-        return next(error);
-    }
-});
+app.post(
+    '/review/suggestions/:id/decision',
+    requireSignIn,
+    requireReviewer,
+    submitDecision
+);
 
 app.listen(port, '0.0.0.0', () => {
     console.log(`Luma is running on port ${port}`);

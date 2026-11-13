@@ -27,7 +27,10 @@ export async function listSuggestionsByUser(userId) {
     return rows;
 }
 
-export async function createSuggestion(userId, { title, message, topic, resourceType }) {
+export async function createSuggestion(
+    userId,
+    { title, message, topic, resourceType }
+) {
     await pool.query(
         `WITH new_suggestion AS (
             INSERT INTO resource_suggestions
@@ -40,4 +43,54 @@ export async function createSuggestion(userId, { title, message, topic, resource
          SELECT id, user_id, status FROM new_suggestion`,
         [userId, title, message, topic, resourceType]
     );
+}
+
+export async function listSuggestionsForReview() {
+    const { rows } = await pool.query(
+        `SELECT id, title, message, topic, resource_type, status
+         FROM resource_suggestions
+         WHERE status IN ('submitted', 'under_review')
+         ORDER BY created_at, id`
+    );
+
+    return rows;
+}
+
+export async function startSuggestionReview(suggestionId, reviewerId) {
+    const { rowCount } = await pool.query(
+        `WITH updated_suggestion AS (
+            UPDATE resource_suggestions
+            SET status = 'under_review'
+            WHERE id = $1 AND status = 'submitted'
+            RETURNING id, status
+         )
+         INSERT INTO suggestion_status_history
+             (suggestion_id, changed_by, status)
+         SELECT id, $2, status FROM updated_suggestion`,
+        [suggestionId, reviewerId]
+    );
+
+    return rowCount > 0;
+}
+
+export async function recordSuggestionDecision(
+    suggestionId,
+    reviewerId,
+    decision,
+    feedback
+) {
+    const { rowCount } = await pool.query(
+        `WITH updated_suggestion AS (
+            UPDATE resource_suggestions
+            SET status = $2
+            WHERE id = $1 AND status = 'under_review'
+            RETURNING id, status
+         )
+         INSERT INTO suggestion_status_history
+             (suggestion_id, changed_by, status, feedback)
+         SELECT id, $3, status, $4 FROM updated_suggestion`,
+        [suggestionId, decision, reviewerId, feedback]
+    );
+
+    return rowCount > 0;
 }
