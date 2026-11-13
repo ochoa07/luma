@@ -5,6 +5,7 @@ import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import { pool } from './db.js';
 import gratitudeRouter from './routes/gratitude.js';
+import createCheckInRouter from './routes/check-in.js';
 import createSuggestionsRouter from './routes/suggestions.js';
 import reviewSuggestionsRouter from './routes/review-suggestions.js';
 import { requireSignIn } from './middleware/require-sign-in.js';
@@ -43,6 +44,13 @@ app.use(session({
         secure: isProduction,
     },
 }));
+
+const comfortTopics = [
+    'Peace', 'Hope', 'Strength', 'Feeling loved', 'Direction',
+    'Just something encouraging',
+];
+
+const resourceTypes = ['Anything', 'Scripture', 'Quote', 'Conference talk'];
 
 app.get('/', (req, res) => {
     res.render('home', {
@@ -157,89 +165,10 @@ app.post('/signout', (req, res, next) => {
     });
 });
 
-const feelings = ['Stressed', 'Sad', 'Lonely', 'Hopeful', 'Grateful', 'Not sure'];
-
-app.get('/check-in', requireSignIn, (req, res) => {
-    res.render('check-in', { feelings, error: null });
-});
-
-app.post('/check-in', requireSignIn, (req, res, next) => {
-    if (req.body?.action === 'skip') {
-        delete req.session.checkInDraft;
-    } else {
-        const reflection = req.body?.reflection;
-        const submitted = req.body?.feelings ?? [];
-        const selected = Array.isArray(submitted) ? submitted : [submitted];
-
-        if (
-            typeof reflection !== 'string' ||
-            reflection.length > 500 ||
-            selected.some((feeling) => !feelings.includes(feeling))
-        ) {
-            return res.status(400).render('check-in', {
-                feelings,
-                error: 'Keep your note under 500 characters and choose from the feelings shown.',
-            });
-        }
-
-        req.session.checkInDraft = {
-            reflection: reflection.trim(),
-            feelings: [...new Set(selected)],
-        };
-    }
-
-    req.session.save((error) => {
-        if (error) return next(error);
-        return res.redirect(303, '/check-in/comfort');
-    });
-});
-
-const comfortTopics = [
-    'Peace', 'Hope', 'Strength', 'Feeling loved', 'Direction',
-    'Just something encouraging',
-];
-
-const resourceTypes = ['Anything', 'Scripture', 'Quote', 'Conference talk'];
-
-app.get('/check-in/comfort', requireSignIn, (req, res) => {
-    res.render('check-in-comfort', { resource: null, error: null });
-});
-
-app.post('/check-in/comfort', requireSignIn, async (req, res, next) => {
-    const { topic, resourceType } = req.body ?? {};
-
-    if (!comfortTopics.includes(topic) || !resourceTypes.includes(resourceType)) {
-        return res.status(400).render('check-in-comfort', {
-            resource: null,
-            error: 'Choose what would help and what kind of message you’d like.',
-        });
-    }
-
-    try {
-        const result = await pool.query(
-            `SELECT id, title, message, resource_type, topic
-             FROM resources
-             WHERE is_published = true
-               AND (topic = $1 OR topic = 'Just something encouraging')
-             ORDER BY
-                CASE
-                    WHEN topic = $1 AND ($2 = 'Anything' OR resource_type = $2) THEN 0
-                    WHEN topic = $1 THEN 1
-                    ELSE 2
-                END,
-                id
-             LIMIT 1`,
-            [topic, resourceType]
-        );
-
-        return res.render('check-in-comfort', {
-            resource: result.rows[0] ?? null,
-            error: result.rows.length ? null : 'There’s no message available yet.',
-        });
-    } catch (error) {
-        return next(error);
-    }
-});
+app.use('/check-in', createCheckInRouter({
+    topics: comfortTopics,
+    types: resourceTypes,
+}));
 
 app.use('/gratitude', gratitudeRouter);
 
@@ -306,8 +235,6 @@ app.use('/suggestions', createSuggestionsRouter({
     topics: comfortTopics,
     types: resourceTypes.filter((type) => type !== 'Anything'),
 }));
-
-app.use('/review/suggestions', reviewSuggestionsRouter);
 
 app.use('/review/suggestions', reviewSuggestionsRouter);
 
