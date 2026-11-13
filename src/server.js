@@ -6,12 +6,8 @@ import connectPgSimple from 'connect-pg-simple';
 import { pool } from './db.js';
 import gratitudeRouter from './routes/gratitude.js';
 import createSuggestionsRouter from './routes/suggestions.js';
+import reviewSuggestionsRouter from './routes/review-suggestions.js';
 import { requireSignIn } from './middleware/require-sign-in.js';
-import {
-    showReviewQueue,
-    startReview,
-    submitDecision,
-} from './controllers/review-suggestions.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -310,44 +306,7 @@ app.use('/suggestions', createSuggestionsRouter({
     types: resourceTypes.filter((type) => type !== 'Anything'),
 }));
 
-async function requireReviewer(req, res, next) {
-    try {
-        const result = await pool.query(
-            'SELECT role FROM users WHERE id = $1',
-            [req.session.userId]
-        );
-        const role = result.rows[0]?.role;
-
-        if (role !== 'contributor' && role !== 'admin') {
-            return res.status(403).send('You don’t have access to the review queue.');
-        }
-
-        return next();
-    } catch (error) {
-        return next(error);
-    }
-}
-
-app.get(
-    '/review/suggestions',
-    requireSignIn,
-    requireReviewer,
-    showReviewQueue
-);
-
-app.post(
-    '/review/suggestions/:id/start',
-    requireSignIn,
-    requireReviewer,
-    startReview
-);
-
-app.post(
-    '/review/suggestions/:id/decision',
-    requireSignIn,
-    requireReviewer,
-    submitDecision
-);
+app.use('/review/suggestions', reviewSuggestionsRouter);
 
 app.listen(port, '0.0.0.0', () => {
     console.log(`Luma is running on port ${port}`);
