@@ -1,10 +1,11 @@
 import express from 'express';
 import { fileURLToPath } from 'node:url';
 import bcrypt from 'bcrypt';
-import { pool } from './db.js';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
+import { pool } from './db.js';
 import gratitudeRouter from './routes/gratitude.js';
+import createSuggestionsRouter from './routes/suggestions.js';
 import { requireSignIn } from './middleware/require-sign-in.js';
 
 const app = express();
@@ -299,75 +300,10 @@ app.post('/resources/:id/unsave', requireSignIn, async (req, res, next) => {
     }
 });
 
-app.get('/suggestions', requireSignIn, async (req, res, next) => {
-    try {
-        const result = await pool.query(
-            `SELECT s.title, s.status,
-                COALESCE(
-                    (
-                        SELECT json_agg(
-                            json_build_object(
-                                'status', h.status,
-                                'feedback', h.feedback,
-                                'createdAt', h.created_at
-                            )
-                            ORDER BY h.created_at, h.id
-                        )
-                        FROM suggestion_status_history AS h
-                        WHERE h.suggestion_id = s.id
-                    ),
-                    '[]'::json
-                ) AS history
-             FROM resource_suggestions AS s
-             WHERE s.user_id = $1
-             ORDER BY s.created_at DESC, s.id DESC`,
-            [req.session.userId]
-        );
-
-        return res.render('suggestions', {
-            suggestions: result.rows,
-            topics: comfortTopics,
-            types: resourceTypes.filter((type) => type !== 'Anything'),
-            invalid: req.query.invalid === '1',
-        });
-    } catch (error) {
-        return next(error);
-    }
-});
-
-app.post('/suggestions', requireSignIn, async (req, res, next) => {
-    const { title, message, topic, resourceType } = req.body ?? {};
-    const cleanTitle = typeof title === 'string' ? title.trim() : '';
-    const cleanMessage = typeof message === 'string' ? message.trim() : '';
-
-    if (
-        !cleanTitle || cleanTitle.length > 150 ||
-        !cleanMessage || cleanMessage.length > 1000 ||
-        !comfortTopics.includes(topic) ||
-        !resourceTypes.includes(resourceType) || resourceType === 'Anything'
-    ) {
-        return res.redirect(303, '/suggestions?invalid=1');
-    }
-
-    try {
-        await pool.query(
-            `WITH new_suggestion AS (
-                INSERT INTO resource_suggestions
-                    (user_id, title, message, topic, resource_type)
-                VALUES ($1, $2, $3, $4, $5)
-                RETURNING id, user_id, status
-             )
-             INSERT INTO suggestion_status_history
-                 (suggestion_id, changed_by, status)
-             SELECT id, user_id, status FROM new_suggestion`,
-            [req.session.userId, cleanTitle, cleanMessage, topic, resourceType]
-        );
-
-        return res.redirect(303, '/suggestions');
-    } catch (error) {
-        return next(error);
-    }
-});
+app.use('/suggestions', createSuggestionsRouter({
+    topics: comfortTopics,
+    types: resourceTypes.filter((type) => type !== 'Anything'),
+}));
 
 async function requireReviewer(req, res, next) {
     try {
