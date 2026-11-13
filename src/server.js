@@ -8,6 +8,7 @@ import gratitudeRouter from './routes/gratitude.js';
 import createSuggestionsRouter from './routes/suggestions.js';
 import reviewSuggestionsRouter from './routes/review-suggestions.js';
 import { requireSignIn } from './middleware/require-sign-in.js';
+import { errorHandler } from './middleware/error-handler.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -307,6 +308,10 @@ app.use('/suggestions', createSuggestionsRouter({
 }));
 
 app.use('/review/suggestions', reviewSuggestionsRouter);
+
+app.use('/review/suggestions', reviewSuggestionsRouter);
+
+app.use(errorHandler);
 
 app.listen(port, '0.0.0.0', () => {
     console.log(`Luma is running on port ${port}`);
