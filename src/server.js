@@ -1,9 +1,9 @@
 import express from 'express';
 import { fileURLToPath } from 'node:url';
-import bcrypt from 'bcrypt';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import { pool } from './db.js';
+import authRouter from './routes/auth.js';
 import gratitudeRouter from './routes/gratitude.js';
 import createCheckInRouter from './routes/check-in.js';
 import createSuggestionsRouter from './routes/suggestions.js';
@@ -58,112 +58,7 @@ app.get('/', (req, res) => {
     });
 });
 
-app.get('/signup', (req, res) => {
-    res.render('signup', {
-        error: null,
-        accountCreated: req.query.created === '1',
-    });
-});
-
-app.post('/signup', async (req, res, next) => {
-    const firstName = String(req.body?.firstName ?? '').trim();
-    const email = String(req.body?.email ?? '').trim().toLowerCase();
-    const password = String(req.body?.password ?? '');
-
-    if (
-        !firstName || firstName.length > 80 ||
-        email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
-        password.length < 8 || Buffer.byteLength(password, 'utf8') > 72
-    ) {
-        return res.status(400).render('signup', {
-            error: 'Enter your first name, a valid email, and a password between 8 characters and 72 bytes.',
-            accountCreated: false,
-        });
-    }
-
-    try {
-        const passwordHash = await bcrypt.hash(password, 12);
-        const result = await pool.query(
-            `INSERT INTO users (first_name, email, password_hash)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (email) DO NOTHING`,
-            [firstName, email, passwordHash]
-        );
-
-        if (result.rowCount === 0) {
-            return res.status(409).render('signup', {
-                error: 'An account already exists with that email.',
-                accountCreated: false,
-            });
-        }
-
-        return res.redirect(303, '/signup?created=1');
-    } catch (error) {
-        return next(error);
-    }
-});
-
-app.get('/signin', (req, res) => {
-    res.render('signin', { error: null });
-});
-
-app.post('/signin', async (req, res, next) => {
-    const email = typeof req.body?.email === 'string'
-        ? req.body.email.trim().toLowerCase()
-        : '';
-    const password = typeof req.body?.password === 'string'
-        ? req.body.password
-        : '';
-
-    if (
-        !email || email.length > 254 ||
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
-        !password || Buffer.byteLength(password, 'utf8') > 72
-    ) {
-        return res.status(400).render('signin', {
-            error: 'Enter a valid email and password.',
-        });
-    }
-
-    try {
-        const result = await pool.query(
-            `SELECT id, first_name, password_hash
-             FROM users
-             WHERE email = $1`,
-            [email]
-        );
-        const user = result.rows[0];
-
-        if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-            return res.status(401).render('signin', {
-                error: 'The email or password is incorrect.',
-            });
-        }
-
-        req.session.regenerate((error) => {
-            if (error) return next(error);
-
-            req.session.userId = user.id;
-            req.session.firstName = user.first_name;
-
-            req.session.save((error) => {
-                if (error) return next(error);
-                return res.redirect(303, '/');
-            });
-        });
-    } catch (error) {
-        return next(error);
-    }
-});
-
-app.post('/signout', (req, res, next) => {
-    req.session.destroy((error) => {
-        if (error) return next(error);
-
-        res.clearCookie('connect.sid', { path: '/' });
-        return res.redirect(303, '/');
-    });
-});
+app.use(authRouter);
 
 app.use('/check-in', createCheckInRouter({
     topics: comfortTopics,
@@ -171,7 +66,6 @@ app.use('/check-in', createCheckInRouter({
 }));
 
 app.use('/gratitude', gratitudeRouter);
-
 app.use(savedResourcesRouter);
 
 app.use('/suggestions', createSuggestionsRouter({
