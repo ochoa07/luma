@@ -75,6 +75,10 @@ app.use('/suggestions', createSuggestionsRouter({
 
 app.use('/review/suggestions', reviewSuggestionsRouter);
 
+app.use((req, res) => {
+    return res.status(404).render('404');
+});
+
 app.use(errorHandler);
 
 app.listen(port, '0.0.0.0', () => {
