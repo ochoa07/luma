@@ -26,6 +26,14 @@ The gratitude journal is a good example of how I’m using MVC. Start with `src/
 
 [Leave feedback in GitHub Issues](https://github.com/ochoa07/luma/issues)
 
+## Recent updates
+
+This week, I added custom 404 and error pages that match Luma’s design. Both pages have a link back home.
+
+I also created a shared EJS head partial for the page title, viewport settings, and stylesheet. Each page passes in its own title, so I can update the shared markup in one place.
+
+I tested these changes locally.
+
 ## What I’m working on next
 
 I still need to finish the admin dashboard and connect approved suggestions to publishing. Before the final submission, I’ll add the database diagram and test account emails.
