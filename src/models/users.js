@@ -21,3 +21,12 @@ export async function findUserByEmail(email) {
 
     return rows[0] ?? null;
 }
+
+export async function findUserRoleById(userId) {
+    const { rows } = await pool.query(
+        'SELECT role FROM users WHERE id = $1',
+        [userId]
+    );
+
+    return rows[0]?.role ?? null;
+}

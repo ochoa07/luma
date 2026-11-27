@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('partials/head', { title: 'Admin dashboard | Luma' }) %>
+</head>
+<body>
+    <main class="welcome-screen">
+        <a class="wordmark" href="/">Luma</a>
+
+        <div class="welcome">
+            <h1>Admin dashboard</h1>
+            <p>Here’s how Luma is growing.</p>
+
+            <dl class="admin-stats">
+                <div class="admin-stat">
+                    <dt>Users</dt>
+                    <dd><%= counts.users %></dd>
+                </div>
+
+                <div class="admin-stat">
+                    <dt>Resources</dt>
+                    <dd><%= counts.resources %></dd>
+                </div>
+
+                <div class="admin-stat">
+                    <dt>Suggestions</dt>
+                    <dd><%= counts.suggestions %></dd>
+                </div>
+            </dl>
+
+            <div class="welcome-actions">
+                <a
+                    class="welcome-link welcome-link--primary"
+                    href="/review/suggestions"
+                >
+                    Review suggestions
+                </a>
+
+                <a class="welcome-link welcome-link--secondary" href="/">
+                    Back home
+                </a>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

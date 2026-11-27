@@ -10,6 +10,7 @@ import createSuggestionsRouter from './routes/suggestions.js';
 import reviewSuggestionsRouter from './routes/review-suggestions.js';
 import savedResourcesRouter from './routes/saved-resources.js';
 import { errorHandler } from './middleware/error-handler.js';
+import adminRouter from './routes/admin.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -74,6 +75,8 @@ app.use('/suggestions', createSuggestionsRouter({
 }));
 
 app.use('/review/suggestions', reviewSuggestionsRouter);
+
+app.use('/admin', adminRouter);
 
 app.use((req, res) => {
     return res.status(404).render('404');

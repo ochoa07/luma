@@ -370,3 +370,28 @@ a.wordmark {
     margin: 0 0 0.5rem;
     text-align: left;
 }
+
+.admin-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 1rem;
+    width: min(100%, 40rem);
+    margin: 2rem auto;
+}
+
+.admin-stat {
+    padding: 1.5rem;
+    border: 1px solid #625a85;
+    border-radius: 1rem;
+    background: #181e3a;
+}
+
+.admin-stat dt {
+    color: #c4bedb;
+}
+
+.admin-stat dd {
+    margin: 0.5rem 0 0;
+    font-size: 2rem;
+    font-weight: 650;
+}
